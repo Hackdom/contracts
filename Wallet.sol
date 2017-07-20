@@ -56,6 +56,8 @@ contract multiowned {
 	// as well as the selection of addresses capable of confirming them.
 	function multiowned(address[] _owners, uint _required) {
 		require(_owners.length > 0);
+		require(_owners.length >= _required);
+		require(_required > 0);
 		m_numOwners = _owners.length;
 		for (uint i = 0; i < _owners.length; ++i) {
 			m_owners[1 + i] = uint(_owners[i]);
@@ -118,6 +120,7 @@ contract multiowned {
 	}
 
 	function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
+		if (_newRequired == 0) return;
 		if (_newRequired > m_numOwners) return;
 		m_required = _newRequired;
 		clearPending();
@@ -298,7 +301,7 @@ contract multisig {
 
 contract creator {
 	function doCreate(uint _value, bytes _code) internal returns (address o_addr) {
-	    bool failed;
+		bool failed;
 		assembly {
 			o_addr := create(_value, add(_code, 0x20), mload(_code))
 			failed := iszero(extcodesize(o_addr))
@@ -372,7 +375,7 @@ contract Wallet is multisig, multiowned, daylimit, creator {
 	}
 
 	function create(uint _value, bytes _code) internal returns (address o_addr) {
-	    return doCreate(_value, _code);
+		return doCreate(_value, _code);
 	}
 
 	// confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
