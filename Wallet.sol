@@ -60,6 +60,7 @@ contract multiowned {
 	/// @param _owners Array of authorized addresses
 	/// @param _required Number of sigs required
 	function multiowned(address[] _owners, uint _required) {
+		require(_owners.length > 0);
 		m_numOwners = _owners.length;
 		for (uint i = 0; i < _owners.length; ++i) {
 			m_owners[1 + i] = uint(_owners[i]);
