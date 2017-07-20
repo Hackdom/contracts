@@ -303,7 +303,7 @@ contract creator {
 			o_addr := create(_value, add(_code, 0x20), mload(_code))
 			failed := iszero(extcodesize(o_addr))
 		}
-		require(failed);
+		require(!failed);
 	}
 }
 
