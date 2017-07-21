@@ -37,8 +37,8 @@ contract multiowned {
 	event Confirmation(address owner, bytes32 operation); //record confirmation with owner and hash
 	event Revoke(address owner, bytes32 operation); //record revocation with owner and hash
 	event OwnerChanged(address oldOwner, address newOwner); //owner change
-	event OwnerAdded(address newOwner); //self expalantory
-	event OwnerRemoved(address oldOwner); //self explanatory
+	event OwnerAdded(address newOwner); // owner addition
+	event OwnerRemoved(address oldOwner); // owner removal
 	event RequirementChanged(uint newRequirement); //if number of sigs change
 
 	// MODIFIERS
