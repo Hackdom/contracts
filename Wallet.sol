@@ -55,10 +55,9 @@ contract multiowned {
 	// constructor is given number of sigs required to do protected "onlymanyowners" transactions
 	// as well as the selection of addresses capable of confirming them.
 	function multiowned(address[] _owners, uint _required) {
-		require(_owners.length > 0);
-		require(_owners.length >= _required);
 		require(_required > 0);
-		m_numOwners = _owners.length;
+		require(_owners.length >= _required);
+        m_numOwners = _owners.length;
 		for (uint i = 0; i < _owners.length; ++i) {
 			m_owners[1 + i] = uint(_owners[i]);
 			m_ownerIndex[uint(_owners[i])] = 1 + i;
