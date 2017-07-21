@@ -399,9 +399,9 @@ contract Wallet is multisig, multiowned, daylimit, creator {
 		}
 	}
     
-  /// @dev Used to confirm transaction by msg.sender using hash
-  /// @param Hash of operation to confirm
-  /// @return o_success True if transaction is complete, false if more confirms needed
+    /// @dev Used to confirm transaction by msg.sender using hash
+    /// @param Hash of operation to confirm
+    /// @return o_success True if transaction is complete, false if more confirms needed
 	function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
 		if (m_txs[_h].to != 0 || m_txs[_h].value != 0 || m_txs[_h].data.length != 0) {
 			address created;
