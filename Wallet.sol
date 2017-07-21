@@ -57,7 +57,7 @@ contract multiowned {
 	function multiowned(address[] _owners, uint _required) {
 		require(_required > 0);
 		require(_owners.length >= _required);
-        m_numOwners = _owners.length;
+		m_numOwners = _owners.length;
 		for (uint i = 0; i < _owners.length; ++i) {
 			m_owners[1 + i] = uint(_owners[i]);
 			m_ownerIndex[uint(_owners[i])] = 1 + i;
