@@ -257,14 +257,39 @@ contract daylimit is multiowned {
 			m_spentToday = 0;
 			m_lastDay = today();
 		}
-		// check to see if there's enough left - if so, subtract and return true.
+        // check to see if there's enough left - if so, subtract and return true.
 		// overflow protection                    // dailyLimit check
-		if (m_spentToday + _value >= m_spentToday && m_spentToday + _value <= m_dailyLimit) {
+		bool err;
+		uint res;
+		(err, res) = m_spentToday.plus(_value);
+		if (!err && res <= m_dailyLimit) {
 			m_spentToday += _value;
 			return true;
+		} else if(!err) {
+			ErrMsg(msg.sender, "Over daily limit");
+			return false;
+		} else {
+			return false;
 		}
-		return false;
 	}
+
+    /// @dev Adds two numbers and checks for overflow before returning.
+    /// Does not throw but rather logs an Err event if there is overflow.
+    /// @param a First number
+    /// @param b Second number
+    /// @return err False normally, or true if there is overflow
+    /// @return res The sum of a and b, or 0 if there is overflow
+    function plus(uint256 a, uint256 b) constant returns (bool err, uint256 res) {
+    assembly{
+      res := add(a,b)
+      jumpi(allGood, and(eq(sub(res,b), a), gt(res,b)))
+      err := 1
+      res := 0
+      allGood:
+    }
+    if (err)
+      Err("plus func overflow");
+    }
 	// determines today's index.
 	function today() private constant returns (uint) { return now / 1 days; }
 
@@ -363,8 +388,6 @@ contract Wallet is multisig, multiowned, daylimit {
 		}
 	}
 
-	// INTERNAL METHODS
-
 	function create(uint _value, bytes _code) internal returns (address o_addr) {
 		assembly {
 			o_addr := create(_value, add(_code, 0x20), mload(_code))
@@ -374,7 +397,7 @@ contract Wallet is multisig, multiowned, daylimit {
 
 	// confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
 	// to determine the body of the transaction from the hash provided.
-	function confirm(bytes32 _h) onlymanyowners(_h) internal returns (bool o_success) {
+	function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
 		if (m_txs[_h].to != 0 || m_txs[_h].value != 0 || m_txs[_h].data.length != 0) {
 			address created;
 			if (m_txs[_h].to == 0) {
@@ -389,6 +412,8 @@ contract Wallet is multisig, multiowned, daylimit {
 			return true;
 		}
 	}
+
+	// INTERNAL METHODS
 
 	function clearPending() internal {
 		uint length = m_pendingIndex.length;
