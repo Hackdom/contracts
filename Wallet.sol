@@ -398,7 +398,7 @@ contract Wallet is multisig, multiowned, daylimit, creator {
 			}
 		}
 	}
-
+    
     /// @dev Used to confirm transaction by msg.sender using hash
 	/// @param Hash of operation to confirm
 	/// @return o_success True if transaction is complete, false if more confirms needed
