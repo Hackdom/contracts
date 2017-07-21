@@ -193,7 +193,7 @@ contract multiowned {
 		if (pending.ownersDone & ownerIndexBit == 0) {
 			Confirmation(msg.sender, _operation);
 			// ok - check if count is enough to go ahead.
-			if (pending.yetNeeded == 1) {
+			if (pending.yetNeeded <= 1) {
 				// enough confirmations: reset and run interior.
 				delete m_pendingIndex[m_pending[_operation].index];
 				delete m_pending[_operation];
