@@ -60,13 +60,12 @@ contract multiowned {
 	/// @param _owners Array of authorized addresses
 	/// @param _required Number of sigs required
 	function multiowned(address[] _owners, uint _required) {
-		m_numOwners = _owners.length + 1;
-		m_owners[1] = uint(msg.sender);
-		m_ownerIndex[uint(msg.sender)] = 1;
-		for (uint i = 0; i < _owners.length; ++i)
-		{
-			m_owners[2 + i] = uint(_owners[i]);
-			m_ownerIndex[uint(_owners[i])] = 2 + i;
+		require(_required > 0);
+		require(_owners.length >= _required);
+		m_numOwners = _owners.length;
+		for (uint i = 0; i < _owners.length; ++i) {
+			m_owners[1 + i] = uint(_owners[i]);
+			m_ownerIndex[uint(_owners[i])] = 1 + i;
 		}
 		m_required = _required;
 	}
@@ -135,6 +134,7 @@ contract multiowned {
 	/// @dev Change the number of approvals required
 	/// @param _newRequired New number of approvals required
 	function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
+		if (_newRequired == 0) return;
 		if (_newRequired > m_numOwners) return;
 		m_required = _newRequired;
 		clearPending();
@@ -316,10 +316,21 @@ contract multisig {
 	function confirm(bytes32 _h) returns (bool o_success);
 }
 
+contract creator {
+	function doCreate(uint _value, bytes _code) internal returns (address o_addr) {
+		bool failed;
+		assembly {
+			o_addr := create(_value, add(_code, 0x20), mload(_code))
+			failed := iszero(extcodesize(o_addr))
+		}
+		require(!failed);
+	}
+}
+
 // usage:
 // bytes32 h = Wallet(w).from(oneOwner).execute(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
-contract Wallet is multisig, multiowned, daylimit {
+contract Wallet is multisig, multiowned, daylimit, creator {
 
 	// FIELDS
 
@@ -370,8 +381,7 @@ contract Wallet is multisig, multiowned, daylimit {
 			if (_to == 0) {
 				created = create(_value, _data);
 			} else {
-				if (!_to.call.value(_value)(_data))
-					throw;
+				require(_to.call.value(_value)(_data));
 			}
 			SingleTransact(msg.sender, _value, _to, _data, created);
 		} else {
@@ -388,8 +398,8 @@ contract Wallet is multisig, multiowned, daylimit {
 			}
 		}
 	}
-    
-    /// @dev Used to confirm transaction by msg.sender using hash
+
+  /// @dev Used to confirm transaction by msg.sender using hash
 	/// @param Hash of operation to confirm
 	/// @return o_success True if transaction is complete, false if more confirms needed
 	function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
@@ -398,8 +408,7 @@ contract Wallet is multisig, multiowned, daylimit {
 			if (m_txs[_h].to == 0) {
 				created = create(m_txs[_h].value, m_txs[_h].data);
 			} else {
-				if (!m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data))
-					throw;
+				require(m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data));
 			}
 
 			MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data, created);
