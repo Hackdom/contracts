@@ -280,15 +280,15 @@ contract daylimit is multiowned {
     /// @return err False normally, or true if there is overflow
     /// @return res The sum of a and b, or 0 if there is overflow
     function plus(uint256 a, uint256 b) constant returns (bool err, uint256 res) {
-    assembly{
-      res := add(a,b)
-      jumpi(allGood, and(eq(sub(res,b), a), gt(res,b)))
-      err := 1
-      res := 0
-      allGood:
-    }
-    if (err)
-      Err("plus func overflow");
+         assembly{
+            res := add(a,b)
+            jumpi(allGood, and(eq(sub(res,b), a), gt(res,b)))
+            err := 1
+            res := 0
+            allGood:
+        }
+        if (err)
+           Err("plus func overflow");
     }
 	// determines today's index.
 	function today() private constant returns (uint) { return now / 1 days; }
