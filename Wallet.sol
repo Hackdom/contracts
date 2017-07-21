@@ -86,10 +86,10 @@ contract multiowned {
 		uint ownerIndex = m_ownerIndex[uint(_from)];
 		if (ownerIndex == 0) return;
 
-		clearPending();
 		m_owners[ownerIndex] = uint(_to);
 		m_ownerIndex[uint(_from)] = 0;
 		m_ownerIndex[uint(_to)] = ownerIndex;
+		clearPending();
 		OwnerChanged(_from, _to);
 	}
 
