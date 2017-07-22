@@ -21,6 +21,17 @@ contract multiowned {
 		uint ownersDone;
 		uint index;
 	}
+    
+   // FIELDS
+
+   uint public m_required; // the number of owners needed to confirm.
+	uint public m_numOwners; // pointer used to find a free slot in m_owners
+
+	uint[256] m_owners; // owner array
+	uint constant c_maxOwners = 250; // maximum number of owners allowed to avoid overflow
+	mapping(uint => uint) m_ownerIndex; // index on the list of owners to allow reverse lookup
+	mapping(bytes32 => PendingState) m_pending; // pending authorization map
+	bytes32[] m_pendingIndex;
 
 	// EVENTS
 
@@ -231,23 +242,18 @@ contract multiowned {
 				delete m_pending[m_pendingIndex[i]];
 		delete m_pendingIndex;
 	}
-
-	// FIELDS
-
-   uint public m_required; // the number of owners needed to confirm.
-	uint public m_numOwners; // pointer used to find a free slot in m_owners
-
-	uint[256] m_owners; // owner array
-	uint constant c_maxOwners = 250; // maximum number of owners allowed to avoid overflow
-	mapping(uint => uint) m_ownerIndex; // index on the list of owners to allow reverse lookup
-	mapping(bytes32 => PendingState) m_pending; // pending authorization map
-	bytes32[] m_pendingIndex;
 }
 
 // inheritable "property" contract that enables methods to be protected by placing a linear limit (specifiable)
 // on a particular resource per calendar day. is multiowned to allow the limit to be altered. resource that method
 // uses is specified in the modifier.
 contract daylimit is multiowned {
+
+   // FIELDS
+
+	uint public m_dailyLimit;
+	uint public m_spentToday;
+	uint public m_lastDay;
 
 	// METHODS
 
@@ -291,12 +297,6 @@ contract daylimit is multiowned {
 
    /// @dev Utility function, determines today's index.
 	function today() private constant returns (uint) { return now / 1 days; }
-
-	// FIELDS
-
-	uint public m_dailyLimit;
-	uint public m_spentToday;
-	uint public m_lastDay;
 }
 
 // interface contract for multisig proxy contracts; see below for docs.
@@ -340,6 +340,11 @@ contract creator {
 // Wallet(w).from(anotherOwner).confirm(h);
 contract Wallet is multisig, multiowned, daylimit, creator {
 
+   // FIELDS
+
+	// pending transactions we have at present.
+	mapping (bytes32 => Transaction) m_txs;
+    
 	// TYPES
 
 	// Transaction structure to remember details of transaction lest it need be saved for a later call.
@@ -439,9 +444,4 @@ contract Wallet is multisig, multiowned, daylimit, creator {
 			delete m_txs[m_pendingIndex[i]];
 		super.clearPending();
 	}
-
-	// FIELDS
-
-	// pending transactions we have at present.
-	mapping (bytes32 => Transaction) m_txs;
 }
