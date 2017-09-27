@@ -399,34 +399,33 @@ contract Wallet is multisig, multiowned, daylimit, creator {
 		}
 	}
 
+  /// @dev Used to confirm transaction by msg.sender using hash
+  /// @param Hash of operation to confirm
+  /// @return o_success True if transaction is complete, false if more confirms needed
+  function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
+    if (m_txs[_h].to != 0 || m_txs[_h].value != 0 || m_txs[_h].data.length != 0) {
+      address created;
+      if (m_txs[_h].to == 0) {
+        created = create(m_txs[_h].value, m_txs[_h].data);
+      } else {
+        require(m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data));
+      }
+
+      MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data, created);
+      delete m_txs[_h];
+      return true;
+    }
+  }
+
 	// INTERNAL METHODS
 
-	/// @dev Creates new contract
-	/// @param _value Amount to send
-	/// @param _code Code for new contract
-	/// @return o_addr Address of new contract
-	function create(uint _value, bytes _code) internal returns (address o_addr) {
-		return doCreate(_value, _code);
-	}
-
-    //*****NEEDS INTERNAL****IF NOT COMMITTED IN PREVIOUS PULL REQUEST*********
-	/// @dev Used to confirm transaction using hash
-	/// @param Hash of operation to confirm
-	/// @return o_success True if transaction is complete, false if more confirms needed
-	function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
-		if (m_txs[_h].to != 0 || m_txs[_h].value != 0 || m_txs[_h].data.length != 0) {
-			address created;
-			if (m_txs[_h].to == 0) {
-				created = create(m_txs[_h].value, m_txs[_h].data);
-			} else {
-				require(m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data));
-			}
-
-			MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data, created);
-			delete m_txs[_h];
-			return true;
-		}
-	}
+  /// @dev Creates new contract
+  /// @param _value Amount to send
+  /// @param _code Code for new contract
+  /// @return o_addr Address of new contract
+  function create(uint _value, bytes _code) internal returns (address o_addr) {
+    return doCreate(_value, _code);
+  }
 
 	/// @dev Clears pending transaction
 	function clearPending() internal {
