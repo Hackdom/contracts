@@ -52,8 +52,9 @@ contract multiowned {
 
 	// METHODS
 
-	// constructor is given number of sigs required to do protected "onlymanyowners" transactions
-	// as well as the selection of addresses capable of confirming them.
+  /// @dev Constructor
+	/// @param _owners Array of authorized addresses
+	/// @param _required Number of sigs required
 	function multiowned(address[] _owners, uint _required) {
 		m_numOwners = _owners.length;
 		for (uint i = 0; i < _owners.length; ++i) {
@@ -63,7 +64,8 @@ contract multiowned {
 		m_required = _required;
 	}
 
-	// Revokes a prior confirmation of the given operation
+  /// @dev Revokes approval from authorized address
+	/// @param _operation Hash of the operation to revoke
 	function revoke(bytes32 _operation) external {
 		uint ownerIndex = m_ownerIndex[uint(msg.sender)];
 		// make sure they're an owner
@@ -77,7 +79,9 @@ contract multiowned {
 		}
 	}
 
-	// Replaces an owner `_from` with another `_to`.
+  /// @dev Change owner address
+	/// @param _from Old address to replace
+	/// @param _to New address
 	function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
 		if (isOwner(_to)) return;
 		uint ownerIndex = m_ownerIndex[uint(_from)];
@@ -90,6 +94,8 @@ contract multiowned {
 		OwnerChanged(_from, _to);
 	}
 
+  /// @dev Add new owner
+	/// @param _owner Address to add
 	function addOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
 		if (isOwner(_owner)) return;
 
@@ -104,6 +110,8 @@ contract multiowned {
 		OwnerAdded(_owner);
 	}
 
+  /// @dev Remove an owner
+	/// @param _owner Address to remove
 	function removeOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
 		uint ownerIndex = m_ownerIndex[uint(_owner)];
 		if (ownerIndex == 0) return;
@@ -116,6 +124,8 @@ contract multiowned {
 		OwnerRemoved(_owner);
 	}
 
+  /// @dev Change the number of approvals required
+	/// @param _newRequired New number of approvals required
 	function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
 		if (_newRequired > m_numOwners) return;
 		m_required = _newRequired;
@@ -123,15 +133,24 @@ contract multiowned {
 		RequirementChanged(_newRequired);
 	}
 
-	// Gets an owner by 0-indexed position (using numOwners as the count)
+  /// @dev Gets an owner by 0-indexed position (using numOwners as the count)
+  /// @param ownerIndex Index of owner to retrieve
+  /// @return Address of owner
 	function getOwner(uint ownerIndex) external constant returns (address) {
 		return address(m_owners[ownerIndex + 1]);
 	}
 
+  /// @dev Query if an address is an owner
+	/// @param _addr address to check
+	/// @return True if owner, false otherwise
 	function isOwner(address _addr) returns (bool) {
 		return m_ownerIndex[uint(_addr)] > 0;
 	}
 
+  /// @dev Query if owner has confirmed a transaction by hash
+	/// @param _operation Operation hash to check
+	/// @param _owner Address of owner to check
+	/// @return True if confirmed, false otherwise
 	function hasConfirmed(bytes32 _operation, address _owner) constant returns (bool) {
 		var pending = m_pending[_operation];
 		uint ownerIndex = m_ownerIndex[uint(_owner)];
@@ -146,6 +165,9 @@ contract multiowned {
 
 	// INTERNAL METHODS
 
+  /// @dev Confirm authorization
+	/// @param _operation Hash of operation to confirm
+	/// @return True if number of confirmations reached, false otherwise
 	function confirmAndCheck(bytes32 _operation) internal returns (bool) {
 		// determine what index the present sender is:
 		uint ownerIndex = m_ownerIndex[uint(msg.sender)];
@@ -183,6 +205,7 @@ contract multiowned {
 		}
 	}
 
+  /// @dev Organize owner array after a removal
 	function reorganizeOwners() private {
 		uint free = 1;
 		while (free < m_numOwners)
@@ -198,6 +221,7 @@ contract multiowned {
 		}
 	}
 
+  /// @dev Clear a pending authorization
 	function clearPending() internal {
 		uint length = m_pendingIndex.length;
 		for (uint i = 0; i < length; ++i)
@@ -230,24 +254,29 @@ contract daylimit is multiowned {
 
 	// METHODS
 
-	// constructor - stores initial daily limit and records the present day's index.
+  /// @dev Constructor - stores initial daily limit and records the present day's index.
+  /// @param _limit Daily limit of resource
 	function daylimit(uint _limit) {
 		m_dailyLimit = _limit;
 		m_lastDay = today();
 	}
-	// (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
+
+  /// @dev Sets new daily limit, needs m_required number of owners to confirm.
+	/// @param _newLimit New daily limit
 	function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data)) external {
 		m_dailyLimit = _newLimit;
 	}
-	// resets the amount already spent today. needs many of the owners to confirm.
+
+  /// @dev Sets day spend to zero, needs m_required number of owners to confirm.
 	function resetSpentToday() onlymanyowners(sha3(msg.data)) external {
 		m_spentToday = 0;
 	}
 
 	// INTERNAL METHODS
 
-	// checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
-	// returns true. otherwise just returns false.
+  /// @dev Checks if _value to spend is within bounds if there is, subtracts it and
+	/// @param _value Amount to be spent
+	/// @return True if in bounds, false otherwise
 	function underLimit(uint _value) internal onlyowner returns (bool) {
 		// reset the spend limit if we're on a different day to last time.
 		if (today() > m_lastDay) {
@@ -262,7 +291,8 @@ contract daylimit is multiowned {
 		}
 		return false;
 	}
-	// determines today's index.
+
+  /// @dev Utility function, determines today's index.
 	function today() private constant returns (uint) { return now / 1 days; }
 
 	// FIELDS
@@ -289,7 +319,7 @@ contract multisig {
 
 	// FUNCTIONS
 
-	// TODO: document
+	// These functions are contained in the Wallet contract
 	function changeOwner(address _from, address _to) external;
 	function execute(address _to, uint _value, bytes _data) external returns (bytes32 o_hash);
 	function confirm(bytes32 _h) returns (bool o_success);
@@ -311,28 +341,33 @@ contract Wallet is multisig, multiowned, daylimit {
 
 	// METHODS
 
-	// constructor - just pass on the owner array to the multiowned and
-	// the limit to daylimit
+  /// @dev Constructor
+	/// @param _owners Array of owner addresses
+	/// @param _required Number of confirmations required for changes
+	/// @param _dayLimit Limit of resource spend per day
 	function Wallet(address[] _owners, uint _required, uint _daylimit)
 			multiowned(_owners, _required) daylimit(_daylimit) {
 	}
 
-	// kills the contract sending everything to `_to`.
+  /// @dev Destroys wallet
+	/// @param _to Address to send rest of resource to
 	function kill(address _to) onlymanyowners(sha3(msg.data)) external {
 		suicide(_to);
 	}
 
-	// gets called when no other function matches
+	/// @dev Fallback function, is payable
 	function() payable {
 		// just being sent some cash?
 		if (msg.value > 0)
 			Deposit(msg.sender, msg.value);
 	}
 
-	// Outside-visible transact entry point. Executes transaction immediately if below daily spend limit.
-	// If not, goes into multisig process. We provide a hash on return to allow the sender to provide
-	// shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
-	// and _data arguments). They still get the option of using them if they want, anyways.
+  /// @dev Executes a transaction, immediately if in spend bounds, returns _operation hash
+	/// for others to confirm if above spend limit
+	/// @param _to Address of resource recipient, 0 if new contract is recipient
+	/// @param _value Amount to spend
+	/// @param _data Data for recipient function
+	/// @return o_hash Operation hash for others to use if m_required owners needed to confirm
 	function execute(address _to, uint _value, bytes _data) external onlyowner returns (bytes32 o_hash) {
 		// first, take the opportunity to check that we're under the daily limit.
 		if ((_data.length == 0 && underLimit(_value)) || m_required == 1) {
@@ -360,16 +395,10 @@ contract Wallet is multisig, multiowned, daylimit {
 		}
 	}
 
-	function create(uint _value, bytes _code) internal returns (address o_addr) {
-		assembly {
-			o_addr := create(_value, add(_code, 0x20), mload(_code))
-			jumpi(invalidJumpLabel, iszero(extcodesize(o_addr)))
-		}
-	}
-
-	// confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
-	// to determine the body of the transaction from the hash provided.
-	function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
+  /// @dev Used to confirm transaction by msg.sender using hash
+  /// @param Hash of operation to confirm
+  /// @return o_success True if transaction is complete, false if more confirms needed
+  function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
 		if (m_txs[_h].to != 0 || m_txs[_h].value != 0 || m_txs[_h].data.length != 0) {
 			address created;
 			if (m_txs[_h].to == 0) {
@@ -387,6 +416,18 @@ contract Wallet is multisig, multiowned, daylimit {
 
 	// INTERNAL METHODS
 
+  /// @dev Creates new contract
+  /// @param _value Amount to send
+  /// @param _code Code for new contract
+  /// @return o_addr Address of new contract
+  function create(uint _value, bytes _code) internal returns (address o_addr) {
+    assembly {
+      o_addr := create(_value, add(_code, 0x20), mload(_code))
+      jumpi(invalidJumpLabel, iszero(extcodesize(o_addr)))
+    }
+  }
+
+  /// @dev Clears pending transaction
 	function clearPending() internal {
 		uint length = m_pendingIndex.length;
 		for (uint i = 0; i < length; ++i)
