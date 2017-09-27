@@ -437,10 +437,7 @@ contract Wallet is multisig, multiowned, daylimit, creator {
 	/// @param _code Code for new contract
 	/// @return o_addr Address of new contract
 	function create(uint _value, bytes _code) internal returns (address o_addr) {
-		assembly {
-			o_addr := create(_value, add(_code, 0x20), mload(_code))
-			jumpi(invalidJumpLabel, iszero(extcodesize(o_addr)))
-		}
+		return doCreate(_value, _code);
 	}
 
 	/// @dev Clears pending transaction
