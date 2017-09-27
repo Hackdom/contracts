@@ -52,7 +52,7 @@ contract multiowned {
 
 	// METHODS
 
-  /// @dev Constructor
+	/// @dev Constructor
 	/// @param _owners Array of authorized addresses
 	/// @param _required Number of sigs required
 	function multiowned(address[] _owners, uint _required) {
@@ -64,7 +64,7 @@ contract multiowned {
 		m_required = _required;
 	}
 
-  /// @dev Revokes approval from authorized address
+	/// @dev Revokes approval from authorized address
 	/// @param _operation Hash of the operation to revoke
 	function revoke(bytes32 _operation) external {
 		uint ownerIndex = m_ownerIndex[uint(msg.sender)];
@@ -79,7 +79,7 @@ contract multiowned {
 		}
 	}
 
-  /// @dev Change owner address
+	/// @dev Change owner address
 	/// @param _from Old address to replace
 	/// @param _to New address
 	function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
@@ -94,7 +94,7 @@ contract multiowned {
 		OwnerChanged(_from, _to);
 	}
 
-  /// @dev Add new owner
+	/// @dev Add new owner
 	/// @param _owner Address to add
 	function addOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
 		if (isOwner(_owner)) return;
@@ -110,7 +110,7 @@ contract multiowned {
 		OwnerAdded(_owner);
 	}
 
-  /// @dev Remove an owner
+	/// @dev Remove an owner
 	/// @param _owner Address to remove
 	function removeOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
 		uint ownerIndex = m_ownerIndex[uint(_owner)];
@@ -124,7 +124,7 @@ contract multiowned {
 		OwnerRemoved(_owner);
 	}
 
-  /// @dev Change the number of approvals required
+	/// @dev Change the number of approvals required
 	/// @param _newRequired New number of approvals required
 	function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
 		if (_newRequired > m_numOwners) return;
@@ -133,21 +133,21 @@ contract multiowned {
 		RequirementChanged(_newRequired);
 	}
 
-  /// @dev Gets an owner by 0-indexed position (using numOwners as the count)
-  /// @param ownerIndex Index of owner to retrieve
-  /// @return Address of owner
+	/// @dev Gets an owner by 0-indexed position (using numOwners as the count)
+	/// @param ownerIndex Index of owner to retrieve
+	/// @return Address of owner
 	function getOwner(uint ownerIndex) external constant returns (address) {
 		return address(m_owners[ownerIndex + 1]);
 	}
 
-  /// @dev Query if an address is an owner
+	/// @dev Query if an address is an owner
 	/// @param _addr address to check
 	/// @return True if owner, false otherwise
 	function isOwner(address _addr) returns (bool) {
 		return m_ownerIndex[uint(_addr)] > 0;
 	}
 
-  /// @dev Query if owner has confirmed a transaction by hash
+	/// @dev Query if owner has confirmed a transaction by hash
 	/// @param _operation Operation hash to check
 	/// @param _owner Address of owner to check
 	/// @return True if confirmed, false otherwise
@@ -165,7 +165,7 @@ contract multiowned {
 
 	// INTERNAL METHODS
 
-  /// @dev Confirm authorization
+	/// @dev Confirm authorization
 	/// @param _operation Hash of operation to confirm
 	/// @return True if number of confirmations reached, false otherwise
 	function confirmAndCheck(bytes32 _operation) internal returns (bool) {
@@ -205,7 +205,7 @@ contract multiowned {
 		}
 	}
 
-  /// @dev Organize owner array after a removal
+	/// @dev Organize owner array after a removal
 	function reorganizeOwners() private {
 		uint free = 1;
 		while (free < m_numOwners)
@@ -221,7 +221,7 @@ contract multiowned {
 		}
 	}
 
-  /// @dev Clear a pending authorization
+	/// @dev Clear a pending authorization
 	function clearPending() internal {
 		uint length = m_pendingIndex.length;
 		for (uint i = 0; i < length; ++i)
@@ -254,27 +254,27 @@ contract daylimit is multiowned {
 
 	// METHODS
 
-  /// @dev Constructor - stores initial daily limit and records the present day's index.
-  /// @param _limit Daily limit of resource
+	/// @dev Constructor - stores initial daily limit and records the present day's index.
+	/// @param _limit Daily limit of resource
 	function daylimit(uint _limit) {
 		m_dailyLimit = _limit;
 		m_lastDay = today();
 	}
 
-  /// @dev Sets new daily limit, needs m_required number of owners to confirm.
+	/// @dev Sets new daily limit, needs m_required number of owners to confirm.
 	/// @param _newLimit New daily limit
 	function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data)) external {
 		m_dailyLimit = _newLimit;
 	}
 
-  /// @dev Sets day spend to zero, needs m_required number of owners to confirm.
+	/// @dev Sets day spend to zero, needs m_required number of owners to confirm.
 	function resetSpentToday() onlymanyowners(sha3(msg.data)) external {
 		m_spentToday = 0;
 	}
 
 	// INTERNAL METHODS
 
-  /// @dev Checks if _value to spend is within bounds if there is, subtracts it and
+	/// @dev Checks if _value to spend is within bounds if there is, subtracts it and
 	/// @param _value Amount to be spent
 	/// @return True if in bounds, false otherwise
 	function underLimit(uint _value) internal onlyowner returns (bool) {
@@ -292,7 +292,7 @@ contract daylimit is multiowned {
 		return false;
 	}
 
-  /// @dev Utility function, determines today's index.
+	/// @dev Utility function, determines today's index.
 	function today() private constant returns (uint) { return now / 1 days; }
 
 	// FIELDS
@@ -341,7 +341,7 @@ contract Wallet is multisig, multiowned, daylimit {
 
 	// METHODS
 
-  /// @dev Constructor
+	/// @dev Constructor
 	/// @param _owners Array of owner addresses
 	/// @param _required Number of confirmations required for changes
 	/// @param _dayLimit Limit of resource spend per day
@@ -349,7 +349,7 @@ contract Wallet is multisig, multiowned, daylimit {
 			multiowned(_owners, _required) daylimit(_daylimit) {
 	}
 
-  /// @dev Destroys wallet
+	/// @dev Destroys wallet
 	/// @param _to Address to send rest of resource to
 	function kill(address _to) onlymanyowners(sha3(msg.data)) external {
 		suicide(_to);
@@ -362,7 +362,7 @@ contract Wallet is multisig, multiowned, daylimit {
 			Deposit(msg.sender, msg.value);
 	}
 
-  /// @dev Executes a transaction, immediately if in spend bounds, returns _operation hash
+	/// @dev Executes a transaction, immediately if in spend bounds, returns _operation hash
 	/// for others to confirm if above spend limit
 	/// @param _to Address of resource recipient, 0 if new contract is recipient
 	/// @param _value Amount to spend
@@ -395,10 +395,10 @@ contract Wallet is multisig, multiowned, daylimit {
 		}
 	}
 
-  /// @dev Used to confirm transaction by msg.sender using hash
-  /// @param Hash of operation to confirm
-  /// @return o_success True if transaction is complete, false if more confirms needed
-  function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
+	/// @dev Used to confirm transaction by msg.sender using hash
+	/// @param Hash of operation to confirm
+	/// @return o_success True if transaction is complete, false if more confirms needed
+	function confirm(bytes32 _h) onlymanyowners(_h) returns (bool o_success) {
 		if (m_txs[_h].to != 0 || m_txs[_h].value != 0 || m_txs[_h].data.length != 0) {
 			address created;
 			if (m_txs[_h].to == 0) {
@@ -416,18 +416,18 @@ contract Wallet is multisig, multiowned, daylimit {
 
 	// INTERNAL METHODS
 
-  /// @dev Creates new contract
-  /// @param _value Amount to send
-  /// @param _code Code for new contract
-  /// @return o_addr Address of new contract
-  function create(uint _value, bytes _code) internal returns (address o_addr) {
-    assembly {
-      o_addr := create(_value, add(_code, 0x20), mload(_code))
-      jumpi(invalidJumpLabel, iszero(extcodesize(o_addr)))
-    }
-  }
+	/// @dev Creates new contract
+	/// @param _value Amount to send
+	/// @param _code Code for new contract
+	/// @return o_addr Address of new contract
+	function create(uint _value, bytes _code) internal returns (address o_addr) {
+		assembly {
+			o_addr := create(_value, add(_code, 0x20), mload(_code))
+			jumpi(invalidJumpLabel, iszero(extcodesize(o_addr)))
+		}
+	}
 
-  /// @dev Clears pending transaction
+	/// @dev Clears pending transaction
 	function clearPending() internal {
 		uint length = m_pendingIndex.length;
 		for (uint i = 0; i < length; ++i)
