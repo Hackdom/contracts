@@ -9,7 +9,7 @@
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
 
-pragma solidity ^0.4.7;
+pragma solidity ^0.4.13;
 
 contract multiowned {
 
@@ -56,8 +56,14 @@ contract multiowned {
 	/// @param _owners Array of authorized addresses
 	/// @param _required Number of sigs required
 	function multiowned(address[] _owners, uint _required) {
+		require(_required > 0);
+		require(_owners.length >= _required);
 		m_numOwners = _owners.length;
 		for (uint i = 0; i < _owners.length; ++i) {
+			if (m_ownerIndex[uint(_owners[i])] != 0 || _owners[i] == 0) {
+				throw;
+			}
+
 			m_owners[1 + i] = uint(_owners[i]);
 			m_ownerIndex[uint(_owners[i])] = 1 + i;
 		}
@@ -127,6 +133,7 @@ contract multiowned {
 	/// @dev Change the number of approvals required
 	/// @param _newRequired New number of approvals required
 	function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
+		if (_newRequired == 0) return;
 		if (_newRequired > m_numOwners) return;
 		m_required = _newRequired;
 		clearPending();
@@ -190,7 +197,7 @@ contract multiowned {
 		if (pending.ownersDone & ownerIndexBit == 0) {
 			Confirmation(msg.sender, _operation);
 			// ok - check if count is enough to go ahead.
-			if (pending.yetNeeded <= 1) {
+			if (pending.yetNeeded == 1) {
 				// enough confirmations: reset and run interior.
 				delete m_pendingIndex[m_pending[_operation].index];
 				delete m_pending[_operation];
@@ -325,10 +332,21 @@ contract multisig {
 	function confirm(bytes32 _h) returns (bool o_success);
 }
 
+contract creator {
+	function doCreate(uint _value, bytes _code) internal returns (address o_addr) {
+		bool failed;
+		assembly {
+			o_addr := create(_value, add(_code, 0x20), mload(_code))
+			failed := iszero(extcodesize(o_addr))
+		}
+		require(!failed);
+	}
+}
+
 // usage:
 // bytes32 h = Wallet(w).from(oneOwner).execute(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
-contract Wallet is multisig, multiowned, daylimit {
+contract Wallet is multisig, multiowned, daylimit, creator {
 
 	// TYPES
 
@@ -376,8 +394,7 @@ contract Wallet is multisig, multiowned, daylimit {
 			if (_to == 0) {
 				created = create(_value, _data);
 			} else {
-				if (!_to.call.value(_value)(_data))
-					throw;
+				require(_to.call.value(_value)(_data));
 			}
 			SingleTransact(msg.sender, _value, _to, _data, created);
 		} else {
@@ -404,8 +421,7 @@ contract Wallet is multisig, multiowned, daylimit {
 			if (m_txs[_h].to == 0) {
 				created = create(m_txs[_h].value, m_txs[_h].data);
 			} else {
-				if (!m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data))
-					throw;
+				require(m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data));
 			}
 
 			MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data, created);
