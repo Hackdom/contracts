@@ -341,6 +341,17 @@ contract creator {
 	}
 }
 
+contract creator {
+	function doCreate(uint _value, bytes _code) internal returns (address o_addr) {
+	    bool created;
+		assembly {
+			o_addr := create(_value, add(_code, 0x20), mload(_code))
+			created := iszero(extcodesize(o_addr))
+		}
+		require(created);
+	}
+}
+
 // usage:
 // bytes32 h = Wallet(w).from(oneOwner).execute(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
